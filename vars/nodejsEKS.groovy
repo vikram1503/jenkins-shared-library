@@ -16,6 +16,7 @@ def call(Map configMap){
             account_id = pipelineGlobals.account_id()
             component = configMap.get("component")
             project = configMap.get("project")
+            def releaseExists = ""
         }
         stages {
             stage('read the version'){
@@ -60,12 +61,27 @@ def call(Map configMap){
 
             stage('Deploy'){
                 steps{
-                    sh """
-                        aws eks update-kubeconfig --region us-east-1 --name ${project}-dev
-                        cd helm
-                        sed -i 's/IMAGE_VERSION/${appVersion}/g' values.yaml
-                        helm upgrade ${component} -n ${project} .
-                    """
+                    script{
+                        releaseExists = sh(script: "helm list -A --short | grep -w ${component} || true", returnStdout: true).trim()
+                        if(releaseExists.isEmpty()){
+                            echo "${component} not installed yet, first time installation"
+                            sh"""
+                                aws eks update-kubeconfig --region ${region} --name ${project}-dev
+                                cd helm
+                                sed -i 's/IMAGE_VERSION/${appVersion}/g' values.yaml
+                                helm install ${component} -n ${project} .
+                            """
+                        }
+                        else{
+                            echo "${component} exists, running upgrade"
+                            sh"""
+                                aws eks update-kubeconfig --region ${region} --name ${project}-dev
+                                cd helm
+                                sed -i 's/IMAGE_VERSION/${appVersion}/g' values.yaml
+                                helm upgrade ${component} -n ${project} .
+                            """
+                        }
+                    }
                 }
             }
 
