@@ -20,6 +20,7 @@ pipeline {
     parameters{
         // which  component you want to deploy
         // which environment
+        // which version
     }
     stages {
         stage('Deploy'){
@@ -36,7 +37,6 @@ pipeline {
                 }
             }
         }
-                
     }    
     post { 
         always { 
@@ -50,5 +50,4 @@ pipeline {
             echo 'I will run when pipeline is failed'
         }
     }
-    
 }
